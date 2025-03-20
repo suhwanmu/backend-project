@@ -25,3 +25,6 @@
 **(6) Logging & Monitoring**
 * 실시간 성능 모니터링 및 장애 감지를 위해 로그 시스템을 구축.
 * **추천 기술**: Prometheus, Grafana, Loki, OpenTelemetry
+---
+
+![image](https://github.com/user-attachments/assets/8c2adb32-5c05-4d37-95ea-62e33f697f83)

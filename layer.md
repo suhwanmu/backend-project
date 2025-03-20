@@ -1,4 +1,4 @@
-**1) API Gateway**
+**(1) API Gateway**
 * 사용자의 요청을 중앙에서 관리하고, 인증/인가, 로깅, 트래픽 제어를 수행.
 * **추천 기술**: Kong, Nginx, Envoy, AWS API Gateway
 

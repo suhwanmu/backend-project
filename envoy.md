@@ -46,7 +46,7 @@ static_resources:
           - lb_endpoints:
               - endpoint:
                   address:
-                    socket_address: { address: order-service, port_value: 8080 }
+                    socket_address: { address: order-service, port_value: 8081 }
 ```
 
 # 2. Docker Compose로 Envoy + Backend 서비스 구성(hot reload)

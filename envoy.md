@@ -1,5 +1,10 @@
 # 1. 경로 기반 라우팅 설정 추가 (envoy.yaml)
 ```yaml
+admin:
+  access_log_path: /dev/null  # (또는 /tmp/envoy_admin.log)
+  address:
+    socket_address: { address: 0.0.0.0, port_value: 19000 }
+
 static_resources:
   listeners:
     - name: listener_0
@@ -24,6 +29,8 @@ static_resources:
                           route: { cluster: order_service }
                 http_filters:
                   - name: envoy.filters.http.router
+                  typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
   clusters:
     - name: user_service
       connect_timeout: 5s
@@ -53,7 +60,7 @@ static_resources:
 ```yaml
 services:
   envoy:
-    image: envoyproxy/envoy:latest
+    image: envoyproxy/envoy:v1.33-latest
     container_name: envoy
     ports:
       - "10000:10000"

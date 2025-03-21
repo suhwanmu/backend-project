@@ -77,7 +77,7 @@ services:
     image: my-order-service:latest
     container_name: order-service
     ports:
-      - "8080:8080"
+      - "8081:8080"
     networks:
       - envoy-network
 

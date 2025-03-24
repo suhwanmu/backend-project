@@ -9,3 +9,9 @@ Projects for backend developers
 * **확장성(Scalability)**: 트래픽 증가에 따라 수평 확장이 가능해야 한다.
 * **데이터 일관성(Consistency)**: 프로필 데이터가 중요하므로 적절한 일관성 모델을 유지해야 한다.
 * **성능(Performance)**: 빠른 조회와 트랜잭션 처리가 가능해야 한다.
+
+## 2. 어플리에이션 아키텍쳐
+
+**Hexagonal**
+![image](https://github.com/user-attachments/assets/50b42895-51ca-41e1-8bc4-5c0620d16eaa)
+  

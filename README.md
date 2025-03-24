@@ -13,5 +13,5 @@ Projects for backend developers
 ## 2. 어플리에이션 아키텍쳐
 
 **Hexagonal**
-![image](https://github.com/user-attachments/assets/50b42895-51ca-41e1-8bc4-5c0620d16eaa)
+![golang clean architecture](https://github.com/bxcodec/go-clean-arch/raw/master/clean-arch.png)
   

@@ -10,7 +10,7 @@ Projects for backend developers
 * **데이터 일관성(Consistency)**: 프로필 데이터가 중요하므로 적절한 일관성 모델을 유지해야 한다.
 * **성능(Performance)**: 빠른 조회와 트랜잭션 처리가 가능해야 한다.
 
-## 2. 어플리에이션 아키텍쳐
+## 2. 어플리케이션 아키텍쳐
 
 **Hexagonal**
 ![golang clean architecture](https://github.com/bxcodec/go-clean-arch/raw/master/clean-arch.png)

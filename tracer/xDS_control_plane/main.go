@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"log"
 	"net"
+	"net/http"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	core "github.com/envoyproxy/go-control-plane/envoy/config/core/v3"
@@ -25,65 +27,121 @@ import (
 
 const (
 	nodeID      = "envoy-test-node"
-	jsonFile    = "endpoints.json"
 	defaultPort = 80
+	httpPort    = ":2222"
+	grpcPort    = ":18000"
 )
 
 type EndpointMap map[string][]string
 
+var (
+	snapshotCache cache.SnapshotCache
+	endpoints     = EndpointMap{}
+	mu            sync.Mutex
+)
+
 func main() {
-	snapshotCache := cache.NewSnapshotCache(false, cache.IDHash{}, nil)
+	snapshotCache = cache.NewSnapshotCache(false, cache.IDHash{}, nil)
 	srv := server.NewServer(context.Background(), snapshotCache, nil)
 
 	go runGRPCServer(srv)
-
-	endpoints := loadEndpointsFromJSON(jsonFile)
-
-	resources := []types.Resource{}
-	for cluster, addressList := range endpoints {
-		cla := generateClusterLoadAssignment(cluster, addressList)
-		resources = append(resources, cla)
-		log.Printf("✔ Loaded endpoints for [%s]: %v\n", cluster, addressList)
-	}
-
-	snapshotVersion := strconv.FormatInt(time.Now().UnixNano(), 10)
-	snap, err := cache.NewSnapshot(snapshotVersion, map[resource.Type][]types.Resource{
-		resource.EndpointType: resources,
-	})
-	if err != nil {
-		log.Fatalf("failed to create snapshot: %v", err)
-	}
-
-	if err := snapshotCache.SetSnapshot(context.Background(), nodeID, snap); err != nil {
-		log.Fatalf("failed to set snapshot: %v", err)
-	}
-
-	log.Println("🚀 xDS EDS server is running and snapshot loaded.")
+	go runHTTPServer()
 	select {}
 }
 
 func runGRPCServer(srv server.Server) {
-	lis, err := net.Listen("tcp", ":18000")
+	lis, err := net.Listen("tcp", grpcPort)
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
 	discovery.RegisterAggregatedDiscoveryServiceServer(grpcServer, srv)
 	servicev3.RegisterEndpointDiscoveryServiceServer(grpcServer, srv)
-	log.Println("📡 gRPC server listening on :18000")
+	log.Println("📡 gRPC server listening on ", grpcPort)
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("Failed to serve: %v", err)
 	}
 }
 
+func runHTTPServer() {
+	http.HandleFunc("/register", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "Only POST method is allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Service string `json:"service"`
+			Addr    string `json:"addr"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+			return
+		}
+
+		if req.Service == "" || req.Addr == "" {
+			http.Error(w, "Missing service or addr", http.StatusBadRequest)
+			return
+		}
+
+		mu.Lock()
+		defer mu.Unlock()
+
+		// 중복 제거
+		for _, existing := range endpoints[req.Service] {
+			if existing == req.Addr {
+				log.Printf("ℹ️ [%s] already registered to [%s]", req.Addr, req.Service)
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		}
+		endpoints[req.Service] = append(endpoints[req.Service], req.Addr)
+		log.Printf("✅ Registered new endpoint [%s] to [%s]", req.Addr, req.Service)
+
+		updateSnapshot()
+		w.WriteHeader(http.StatusOK)
+	})
+
+	log.Println("🌐 HTTP registration server listening on", httpPort)
+	if err := http.ListenAndServe(httpPort, nil); err != nil {
+		log.Fatalf("Failed to run HTTP server: %v", err)
+	}
+}
+
+func updateSnapshot() {
+	resources := []types.Resource{}
+	for cluster, addressList := range endpoints {
+		cla := generateClusterLoadAssignment(cluster, addressList)
+		resources = append(resources, cla)
+	}
+
+	version := strconv.FormatInt(time.Now().UnixNano(), 10)
+	snap, err := cache.NewSnapshot(version, map[resource.Type][]types.Resource{
+		resource.EndpointType: resources,
+	})
+	if err != nil {
+		log.Printf("❌ failed to create snapshot: %v", err)
+		return
+	}
+
+	if err := snapshotCache.SetSnapshot(context.Background(), nodeID, snap); err != nil {
+		log.Printf("❌ failed to set snapshot: %v", err)
+		return
+	}
+	log.Printf("📦 Snapshot updated! Version: %s", version)
+}
+
 func loadEndpointsFromJSON(path string) EndpointMap {
 	file, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatalf("Failed to read file: %v", err)
+		log.Printf("⚠️ Failed to read file, starting with empty endpoints: %v", err)
+		return EndpointMap{}
 	}
 	var m EndpointMap
 	if err := json.Unmarshal(file, &m); err != nil {
-		log.Fatalf("Failed to parse JSON: %v", err)
+		log.Printf("⚠️ Failed to parse JSON: %v", err)
+		return EndpointMap{}
 	}
 	return m
 }

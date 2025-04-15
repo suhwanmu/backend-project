@@ -1,5 +1,5 @@
 # 1단계: 빌드 스테이지
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # 필수 도구 설치
 RUN apk --no-cache add git
@@ -26,9 +26,6 @@ WORKDIR /app
 
 # 빌드한 바이너리 복사
 COPY --from=builder /app/controle_plane .
-
-# JSON 설정 파일 복사 (예: endpoints.json)
-COPY endpoints.json .
 
 # 포트 오픈 (gRPC용)
 EXPOSE 18000

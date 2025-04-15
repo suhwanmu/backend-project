@@ -1,6 +1,0 @@
-{
-  "my_dynamic_service": [
-    "tracer-1:8080",
-    "tracer-2:8080"
-  ]
-}

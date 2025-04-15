@@ -2,7 +2,7 @@ module control_plane
 
 go 1.22.0
 
-toolchain go1.23.8
+toolchain go1.24.1
 
 require (
 	github.com/envoyproxy/go-control-plane v0.13.4

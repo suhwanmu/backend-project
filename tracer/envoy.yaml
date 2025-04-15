@@ -1,0 +1,69 @@
+# 관리용 관리자 포트
+admin:
+  access_log_path: /dev/null
+  address:
+    socket_address:
+      address: 0.0.0.0
+      port_value: 19000
+
+static_resources:
+  # Envoy가 gRPC로 연결할 Control Plane (xDS 서버)
+  clusters:
+    - name: xds_cluster
+      type: STRICT_DNS
+      connect_timeout: 1s
+      load_assignment:
+        cluster_name: xds_cluster
+        endpoints:
+          - lb_endpoints:
+              - endpoint:
+                  address:
+                    socket_address:
+                      address: control-plane  # 또는 외부 IP
+                      port_value: 18000   # go-control-plane gRPC 포트
+
+    # 실제 backend 서비스용 EDS 클러스터 (여기엔 endpoint 없음 → Control Plane에서 받아옴)
+    - name: my_dynamic_service
+      type: EDS
+      connect_timeout: 2s
+      eds_cluster_config:
+        service_name: my_dynamic_service
+        eds_config:
+          api_config_source:
+            api_type: GRPC
+            grpc_services:
+              - envoy_grpc:
+                  cluster_name: xds_cluster
+
+  # 수신 HTTP 요청 리스너
+  listeners:
+    - name: listener_0
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 10000
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: ingress_http
+                codec_type: AUTO
+                route_config:
+                  name: local_route
+                  virtual_hosts:
+                    - name: dynamic-vhost
+                      domains: ["*"]
+                      routes:
+                        - match:
+                            prefix: /
+                          route:
+                            cluster: my_dynamic_service
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
+node:
+  id: envoy-test-node      # ← go-control-plane에서 SetSnapshot 할 때 이 ID 사용
+  cluster: ingress-cluster

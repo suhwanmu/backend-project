@@ -1,0 +1,40 @@
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.33.0
+    container_name: envoy
+    ports:
+      - "10000:10000"       # Envoy 클라이언트 수신 포트
+      - "19000:19000"       # Envoy Admin API 포트
+    volumes:
+      - ./envoy.yaml:/etc/envoy/envoy.yaml
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "debug"]
+    depends_on:
+      - control-plane
+    networks:
+      - envoy_net
+
+  control-plane:
+    image: controle-plane:latest  # Dockerfile 위치
+    container_name: control-plane
+    ports:
+      - "18000:18000"            # gRPC xDS 포트
+    volumes:
+      - ./xDS_control_plane/endpoints.json:/app/endpoints.json  # JSON 매핑
+    networks:
+      - envoy_net
+    restart: unless-stopped
+
+  tracer:
+    image: tracer:latest
+    container_name: test-tracer
+    environment:
+      - TRACER_SERVICE=test_dynamic_service
+      - TRACER_ADDR=test-tracer:18080
+      - CONTROL_PLANE_HOST=control-plane
+    depends_on:
+      - control-plane
+    networks:
+      - envoy_net
+
+networks:
+  envoy_net:

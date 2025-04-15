@@ -15,7 +15,7 @@ services:
 
   control-plane:
     image: embracer_control_plane:latest  # Dockerfile 위치
-    container_name: control-plane
+    container_name: embracer-control-plane
     ports:
       - "18000:18000"            # gRPC xDS 포트
     networks:
@@ -25,7 +25,7 @@ services:
   embracer:
     image: embracer:latest
     hostname: embracer
-    container_name: test-embracer
+    container_name: embracer
     environment:
       - embracer_SERVICE=test_dynamic_service
       - embracer_ADDR=test-embracer:18080

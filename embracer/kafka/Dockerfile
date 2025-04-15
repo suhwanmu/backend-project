@@ -26,5 +26,7 @@ ENV KAFKA_BROKER_ID=1 \
     KAFKA_AUTO_CREATE_TOPICS_ENABLE='false' \
     KAFKA_LOG4J_LOGGERS='org.apache.kafka.image.loader.MetadataLoader=WARN'
 
+USER root
 COPY update_run.sh /home/appuser/update_run.sh
+RUN chmod +x /home/appuser/update_run.sh
 CMD ["bash","-c", "/home/appuser/update_run.sh" ]

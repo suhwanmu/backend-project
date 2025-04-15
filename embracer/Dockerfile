@@ -12,7 +12,7 @@ RUN go mod tidy
 
 # 소스 코드 복사 및 빌드
 COPY . .
-RUN go build -o tracer .
+RUN go build -o embracer .
 
 # 2단계: 실행용 이미지 (경량 Alpine 사용)
 FROM alpine:latest
@@ -23,13 +23,13 @@ RUN apk --no-cache add ca-certificates
 WORKDIR /app
 
 # 빌드된 실행 파일 복사
-COPY --from=builder /app/tracer .
+COPY --from=builder /app/embracer .
 
-# 포트 노출 (옵션, 실제 tracer가 서버라면 필요)
+# 포트 노출 (옵션, 실제 embracer가 서버라면 필요)
 EXPOSE 8080
 
 # 환경 변수 입력 예시:
-# TRACER_SERVICE=my_dynamic_service
-# TRACER_ADDR=tracer-1:8080
+# embracer_SERVICE=my_dynamic_service
+# embracer_ADDR=embracer-1:8080
 # 실행 명령
-CMD ["./tracer"]
+CMD ["./embracer"]

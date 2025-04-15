@@ -21,17 +21,17 @@ type RegisterRequest struct {
 
 func main() {
 	// 환경 변수 또는 기본값 설정
-	service := os.Getenv("TRACER_SERVICE")
+	service := os.Getenv("embracer_SERVICE")
 	if service == "" {
 		service = "test_dynamic_service"
 	}
-	addr := os.Getenv("TRACER_ADDR")
+	addr := os.Getenv("embracer_ADDR")
 	if addr == "" {
-		addr = "test-tracer:18080"
+		addr = "test-embracer:18080"
 	}
 
 	if service == "" || addr == "" {
-		log.Fatal("❌ TRACER_SERVICE and TRACER_ADDR env vars must be set")
+		log.Fatal("❌ embracer_SERVICE and embracer_ADDR env vars must be set")
 	}
 
 	// 요청 본문 생성
@@ -69,8 +69,8 @@ func main() {
 		fmt.Fprintln(w, "pong")
 	})
 
-	log.Println("📡 Tracer is listening on ", httpPort)
+	log.Println("📡 embracer is listening on ", httpPort)
 	if err := http.ListenAndServe(httpPort, nil); err != nil {
-		log.Fatalf("❌ Failed to start tracer HTTP server: %v", err)
+		log.Fatalf("❌ Failed to start embracer HTTP server: %v", err)
 	}
 }

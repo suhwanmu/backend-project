@@ -28,8 +28,8 @@ services:
     container_name: embracer
     environment:
       - embracer_SERVICE=test_dynamic_service
-      - embracer_ADDR=test-embracer:18080
-      - CONTROL_PLANE_HOST=control-plane
+      - embracer_ADDR=embracer:8080
+      - CONTROL_PLANE_HOST=embracer-control-plane
     depends_on:
       - control-plane
     networks:
@@ -55,6 +55,27 @@ services:
     networks:
       - embracer_net
     restart: unless-stopped
+
+  akhq:
+    image: tchiotludo/akhq:latest
+    container_name: akhq
+    ports:
+      - "8090:8080"
+    networks:
+      - embracer_net
+    depends_on:
+      - kafka
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          server:
+            servlet:
+              context-path: /
+          connections:
+            astron-kafka:
+              properties:
+                bootstrap.servers: "embracer-kafka:9092"
+
 
 volumes:
   kafka-data:

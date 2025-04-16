@@ -1,0 +1,12 @@
+{
+    "go.useLanguageServer": true,
+    "gopls": {
+      "buildFlags": [],
+      "env": {},
+      "usePlaceholders": true,
+      "completeUnimported": true,
+      "staticcheck": true
+    },
+    "go.formatTool": "gofmt",
+    "go.lintTool": "golint"
+  }

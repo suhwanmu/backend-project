@@ -1,0 +1,11 @@
+.
+├── cmd/
+│   └── embracer/           # 메인 진입점 (main.go)
+├── internal/
+│   ├── app/                # 유스케이스 (비즈니스 로직)
+│   ├── domain/
+│   │   └── port/           # 포트 인터페이스 (입력/출력)
+│   ├── adapter/
+│   │   └── controlplane/   # 외부 시스템 연동 (예: HTTP, gRPC 클라이언트)
+│   └── infra/
+│       └── log/            # 로깅, DB 등 기술 세부사항

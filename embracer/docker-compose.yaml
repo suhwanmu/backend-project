@@ -3,8 +3,8 @@ services:
     image: envoyproxy/envoy:v1.33.0
     container_name: embracer-envoy
     ports:
-      - "10000:10000"       # Envoy 클라이언트 수신 포트
-      - "19000:19000"       # Envoy Admin API 포트
+      - "10000:10000" # Envoy 클라이언트 수신 포트
+      - "19000:19000" # Envoy Admin API 포트
     volumes:
       - ./envoy.yaml:/etc/envoy/envoy.yaml
     command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "debug"]
@@ -13,11 +13,17 @@ services:
     networks:
       - embracer_net
 
+  traffic-ui:
+    image: traffic_ui:latest
+    container_name: traffic_ui
+    ports:
+      - "3000:80" # 호스트의 3000 → 컨테이너 80
+
   control-plane:
-    image: embracer_control_plane:latest  # Dockerfile 위치
+    image: embracer_control_plane:latest # Dockerfile 위치
     container_name: embracer-control-plane
     ports:
-      - "18000:18000"            # gRPC xDS 포트
+      - "18000:18000" # gRPC xDS 포트
     networks:
       - embracer_net
     restart: unless-stopped
@@ -27,22 +33,24 @@ services:
     hostname: embracer
     container_name: embracer
     environment:
-      - embracer_SERVICE=test_dynamic_service
-      - embracer_ADDR=embracer:8080
-      - CONTROL_PLANE_HOST=embracer-control-plane
+      - EMBRACER_CLUSTER_NAME=dynamic_backend_service
+      - EMBRACER_ADDR=embracer:8080
+      - CONTROL_PLANE_HOST=embracer-control-plane:2222
+      - HTTP_PORT=:8080
     depends_on:
       - control-plane
     networks:
       - embracer_net
+    restart: unless-stopped
 
   kafka:
     image: embracer_kafka:latest
     hostname: embracer-kafka
     container_name: embracer-kafka
     ports:
-      - "9092:9092"  # Kafka Client
-      - "9093:9093"  # Controller Listener
-      - "9101:9101"  # JMX (Optional)
+      - "9092:9092" # Kafka Client
+      - "9093:9093" # Controller Listener
+      - "9101:9101" # JMX (Optional)
     logging:
       driver: "json-file"
       options:
@@ -75,7 +83,6 @@ services:
             astron-kafka:
               properties:
                 bootstrap.servers: "embracer-kafka:9092"
-
 
 volumes:
   kafka-data:

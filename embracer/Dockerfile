@@ -12,7 +12,7 @@ RUN go mod tidy
 
 # 소스 코드 복사 및 빌드
 COPY . .
-RUN go build -o embracer .
+RUN go build -o embracer ./cmd/embracer/.
 
 # 2단계: 실행용 이미지 (경량 Alpine 사용)
 FROM alpine:latest

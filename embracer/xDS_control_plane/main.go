@@ -32,7 +32,7 @@ import (
 )
 
 const (
-	nodeID      = "envoy-test-node"
+	nodeID      = "envoy-xds-node"
 	defaultPort = 80
 	httpPort    = ":2222"
 	grpcPort    = ":18000"
@@ -123,7 +123,7 @@ func runHTTPServer() {
 		}
 
 		var req struct {
-			Service string `json:"service"`
+			Cluster string `json:"cluster"`
 			Addr    string `json:"addr"`
 		}
 
@@ -132,8 +132,8 @@ func runHTTPServer() {
 			return
 		}
 
-		if req.Service == "" || req.Addr == "" {
-			http.Error(w, "Missing service or addr", http.StatusBadRequest)
+		if req.Cluster == "" || req.Addr == "" {
+			http.Error(w, "Missing cluster or addr", http.StatusBadRequest)
 			return
 		}
 
@@ -141,15 +141,15 @@ func runHTTPServer() {
 		defer mu.Unlock()
 
 		// 중복 제거
-		for _, existing := range endpoints[req.Service] {
+		for _, existing := range endpoints[req.Cluster] {
 			if existing == req.Addr {
-				log.Info().Msgf("ℹ️ [%s] already registered to [%s]", req.Addr, req.Service)
+				log.Info().Msgf("ℹ️ [%s] already registered to [%s]", req.Addr, req.Cluster)
 				w.WriteHeader(http.StatusOK)
 				return
 			}
 		}
-		endpoints[req.Service] = append(endpoints[req.Service], req.Addr)
-		log.Info().Msgf("✅ Registered new endpoint [%s] to [%s]", req.Addr, req.Service)
+		endpoints[req.Cluster] = append(endpoints[req.Cluster], req.Addr)
+		log.Info().Msgf("✅ Registered new endpoint [%s]  cluster name [%s]", req.Addr, req.Cluster)
 
 		updateSnapshot()
 		w.WriteHeader(http.StatusOK)
@@ -200,6 +200,12 @@ func generateClusterLoadAssignment(cluster string, endpoints []string) *endpoint
 			log.Error().Msgf("⚠️ No port specified in endpoint '%s', defaulting to %d", ep, defaultPort)
 		}
 
+		ips, _ := net.LookupHost(host) // "embracer" hostname을 ip로 변환
+		if len(ips) > 0 {
+    		host = ips[0]
+			log.Info().Msgf("host:%s",host)
+		}
+
 		lbEndpoints = append(lbEndpoints, &endpointv3.LbEndpoint{
 			HostIdentifier: &endpointv3.LbEndpoint_Endpoint{
 				Endpoint: &endpointv3.Endpoint{
@@ -210,11 +216,14 @@ func generateClusterLoadAssignment(cluster string, endpoints []string) *endpoint
 								PortSpecifier: &core.SocketAddress_PortValue{
 									PortValue: port,
 								},
+								// ResolverName: "envoy.network.dns_resolver.cares",
+								// ResolverName: "default", // dns 로 address를 찾겠다는 설정, 이 설정 빠지면 고정 ip로 인식해서 envoy에서 에러 발생
 							},
 						},
 					},
 				},
 			},
+			// HealthStatus: core.HealthStatus_HEALTHY, //endpoint의 health 상태를 강제로 healthy 설정
 		})
 	}
 

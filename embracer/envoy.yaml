@@ -12,6 +12,7 @@ static_resources:
     - name: xds_cluster
       type: STRICT_DNS
       connect_timeout: 1s
+      http2_protocol_options: {} #gRPC는 HTTP/2를 사용해야 함
       load_assignment:
         cluster_name: xds_cluster
         endpoints:
@@ -19,21 +20,32 @@ static_resources:
               - endpoint:
                   address:
                     socket_address:
-                      address: control-plane  # 또는 외부 IP
-                      port_value: 18000   # go-control-plane gRPC 포트
+                      address: embracer-control-plane # 또는 외부 IP
+                      port_value: 18000 # go-control-plane gRPC 포트
 
     # 실제 backend 서비스용 EDS 클러스터 (여기엔 endpoint 없음 → Control Plane에서 받아옴)
-    - name: my_dynamic_service
+    - name: dynamic_backend_service
       type: EDS
       connect_timeout: 2s
       eds_cluster_config:
-        service_name: my_dynamic_service
+        service_name: dynamic_backend_service
         eds_config:
           api_config_source:
             api_type: GRPC
             grpc_services:
               - envoy_grpc:
                   cluster_name: xds_cluster
+
+      health_checks:
+        - timeout: 1s
+          interval: 2s
+          unhealthy_threshold: 2
+          healthy_threshold: 1
+          http_health_check:
+            path: /ping
+            expected_statuses:
+              - start: 200
+                end: 300
 
   # 수신 HTTP 요청 리스너
   listeners:
@@ -58,12 +70,20 @@ static_resources:
                         - match:
                             prefix: /
                           route:
-                            cluster: my_dynamic_service
+                            cluster: dynamic_backend_service
                 http_filters:
                   - name: envoy.filters.http.router
                     typed_config:
                       "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
 
 node:
-  id: envoy-test-node      # ← go-control-plane에서 SetSnapshot 할 때 이 ID 사용
+  id: envoy-xds-node # ← go-control-plane에서 SetSnapshot 할 때 이 ID 사용
   cluster: ingress-cluster
+
+layered_runtime:
+  layers:
+    - name: static_layer
+      static_layer:
+        envoy.deprecated_features:disabled: true
+        envoy.reloadable_features.health_check.grpc_use_http2_for_health_checks: true
+        envoy.health_checker:debug: true
